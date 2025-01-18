@@ -32,6 +32,12 @@ library(pastecs)
 stat.desc(na.omit(ChikData$Test_delay))
 IQR(na.omit(ChikData$Test_delay))
 
+stat.desc(na.omit(ChikData$Age))
+IQR(na.omit(ChikData$Age))
+
+
+stat.desc(na.omit(ChikData$Age[ChikData$Hospital_cat == "Yes"]))
+IQR(na.omit(ChikData$Age))
 
 NROW(ChikData$Test_delay)
 x <- table(ChikData$Test_delay)
@@ -211,6 +217,48 @@ round(prop.table(x),4)*100
 
 
 
+#Followup
+ChikData$FU_Current_Status[ChikData$FU_Current_Status == ""] <- NA
+x <- table(ChikData$FU_Current_Status)
+x
+round(prop.table(x),4)*100
+
+
+ChikData$FU_Sym_Joint_Pain[ChikData$FU_Sym_Joint_Pain == ""] <- NA
+x <- table(ChikData$FU_Sym_Joint_Pain)
+x
+round(prop.table(x),4)*100
+
+
+ChikData$FU_Sym_Joint_Swelling[ChikData$FU_Sym_Joint_Swelling == ""] <- NA
+x <- table(ChikData$FU_Sym_Joint_Swelling)
+x
+round(prop.table(x),4)*100
+
+ChikData$FU_Sym_Fatigue[ChikData$FU_Sym_Fatigue == ""] <- NA
+x <- table(ChikData$FU_Sym_Fatigue)
+x
+round(prop.table(x),4)*100
+
+ChikData$FU_Sym_Others2[ChikData$FU_Sym_Others2 == ""] <- NA
+x <- table(ChikData$FU_Sym_Others2)
+x
+round(prop.table(x),4)*100
+
+ChikData$FU_Sym_Any[ChikData$FU_Sym_Any == ""] <- NA
+x <- table(ChikData$FU_Sym_Any)
+x
+round(prop.table(x),4)*100
+
+stat.desc(na.omit(ChikData$FU_Duration_Hosp_Stay))
+IQR(na.omit(ChikData$FU_Duration_Hosp_Stay))
+
+
+stat.desc(na.omit(ChikData$FU_Loss_Workdays))
+IQR(na.omit(ChikData$FU_Loss_Workdays))
+
+
+
 #Crosstabs
 
 x <- table(ChikData$Hospital_cat)
@@ -233,9 +281,7 @@ c
 round(prop.table(c,1)*100,2)
 summary(c)
 
-median(ChikData$Symp_count)
-
-c <- table(ChikData$Symp_cat , ChikData$Hospital_cat)
+c <- table(ChikData$DCC , ChikData$Hospital_cat)
 c
 round(prop.table(c,1)*100,2)
 summary(c)
@@ -258,20 +304,45 @@ c
 round(prop.table(c,1)*100,2)
 summary(c)
 
+## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
+library(geepack)
 
-ChikData$Any_comorb[ChikData$Any_comorb == ""] <- NA
-c <- table(ChikData$DCC , ChikData$Hospital_cat)
-c
-round(prop.table(c,1)*100,2)
-summary(c)
+ChikData_new <- ChikData[, c("Serial", "N_Hospital_cat", "Age",
+                                       "Sex_cat", "Emp_status", "DCC",
+                                       "Symp_cat2", "Test_delay_cat", "Any_comorb")]
 
-model <- glm(N_Hospital_cat ~ factor(N_Age_cat2) + factor(N_Sex_cat) + factor(N_Emp_status) + factor(ChikData$DCC) + factor(N_Symp_cat)  + factor(N_Test_delay_cat) + factor(Any_comorb), data= ChikData)
+ChikData_nomiss = na.omit(ChikData_new)
+geeglm.log.poisson <- geeglm(formula = N_Hospital_cat ~ Age + Sex_cat + Emp_status + Symp_cat2 + Test_delay_cat + Any_comorb,
+                             data    = ChikData_nomiss,
+                             id      = Serial,
+                             corstr  = "exchangeable")
+summary(geeglm.log.poisson)
 
-summary(model)
-exp(cbind(coef(model), confint(model)))
+cc <- coef(summary(geeglm.log.poisson))
+citab <- with(as.data.frame(cc),
+              cbind(lwr=Estimate-1.96*Std.err,
+                    upr=Estimate+1.96*Std.err))
+rownames(citab) <- rownames(cc)
+exp(cbind(cc, citab))
+
+library(car)
+performance::performance(geeglm.log.poisson)
 
 
+shp <- readOGR(dsn = "E:\\ResearchProject\\Najmul Bhai\\CHIKV\\bgd_adm_bbs_20201113_shp", "bgd_admbnda_adm4_bbs_20201113")
+head(shp@data)
+SL.map <- fortify(shp, region = "ADM2_EN")
+map1 <- ggplot() + 
+  geom_polygon(data = SL.map, aes(x = long, y = lat, group = group), colour = "cadetblue", fill = "azure2") +
+  geom_polygon(data = shp[shp$ADM2_EN=="Dhaka",], aes(x = long, y = lat, group = group), colour = "red", fill = "red") +
+  theme(axis.title.x = element_blank()) + theme(axis.title.y = element_blank()) +
+  labs(title = "Map of Bangladesh")+
+  scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL)+
+  theme(plot.title = element_text(size = 12))
 
+map1
+
+library(grid)
 shp <- readOGR(dsn = "E:\\ResearchProject\\Najmul Bhai\\CHIKV\\bgd_adm_bbs_20201113_shp", "bgd_admbnda_adm4_bbs_20201113")
 head(shp@data)
 shp <- shp[shp$ADM2_EN=="Dhaka",]
@@ -316,102 +387,119 @@ xLat = ChikData$Latitude
 
 SL.map <- fortify(shp, region = "ADM2_EN")
 
-map1 <- ggplot() + 
+map2 <- ggplot() + 
   geom_polygon(data = SL.map, aes(x = long, y = lat, group = group), colour = "cadetblue", fill = "azure2") +
   labs(title = "Location of Chikungunya patients ") +
   xlab(label="Longitute") + ylab(label="Latitute")
-map1
+map2
 
-map2 <- map1 +  geom_point(data=ChikData, aes(x=Longitude, y=Latitude), colour = "darkgreen", size = 2)+
+map3 <- map2 +  geom_point(data=ChikData, aes(x=Longitude, y=Latitude), colour = "darkgreen", size = 2)+
   theme(axis.text = element_text(size = 30),
         axis.title = element_text(size = 30),
         plot.title = element_text(size = 30))
 
 
-map2
+map3
 
+# Add scale and North arrow
+library(ggspatial)
+map4 <- map3 +
+  ggspatial::annotation_north_arrow(
+    location = "br", which_north = "true",
+    pad_x = unit(0.4, "in"), pad_y = unit(0.4, "in"),
+    style = ggspatial::north_arrow_nautical(
+      fill = c("grey40", "white"),
+      line_col = "grey20",
+      text_family = "ArcherPro Book"
+    )
+  )
 
+map5 <- map4 + annotation_custom(ggplotGrob(map1), xmin = 90.4, xmax = 90.53, 
+                       ymin = 23.91, ymax = 24.06) 
+
+map6 <- map5 + annotate(geom="text", x=90.25, y=23.50, label="Map of Dhaka",
+                              color="black", size=10)
+map6
 library(gridExtra)
 tiff("ChikungunyaMap.tiff", units="in", width=10, height=8, res=300)
-gridExtra::grid.arrange(map2, nrow=1, ncol=1)
+gridExtra::grid.arrange(map6, nrow=1, ncol=1)
 dev.off()
 
 
 
 
 
-
-#######Count GLM
-options(scipen=999)
-## Chikungunya - BD data ##
-rm(list=ls())
-library(MASS)
-library(tscount)
-
-chikts <- read.csv("ChikTS.csv", header=T)  
-names(chikts)
-
-
-#ARIMA
-library(tseries)
-library(forecast)
-library(zoo)
-d1=zoo(chikts$Pos, seq(from = as.Date("2024-10-19"), to = as.Date("2024-12-11"), by = 1))
-tsdata <- ts(d1, frequency = 365)
-
-auto.arima(tsdata)
-
-Fit<-Arima(tsdata,order=c(2,1,1))
-summary(Fit)
-
-fcast <- forecast(Fit, h=10)
-
-library(ggfortify)
-z <- autoplot(fcast, size = 2) +
-  xlab("Days") + ylab("Number of Chikungunya cases") +ggtitle("ARIMA Model")+
-  guides(colour=guide_legend(title="Observed data"),
-         fill=guide_legend(title="Prediction interval"))+ theme(legend.position="bottom") + theme_bw()+
-  theme( legend.text = element_text(color = "Black", size = 18),
-         text = element_text(size = 18))
-z
-
-tiff("arima.tiff", units="in", width=12, height=6, res=300)
-gridExtra::grid.arrange(z)
-dev.off()
-
-#Menn kendal
-library(Kendall)
-library(trend)
-
-t.test(tsdata)$"conf.int"
-mean(tsdata)
-
-library(trend)
-MannKendall(tsdata)
-sens.slope(tsdata, conf.level = 0.95)
-
-
-chikdat <- read.csv("CHIKV_Count.csv", header=T)  
-names(chikdat)
-
-fitglm <- glm(Chik_pos ~ Test_delay + Age_avg + Male_per + Emp_stat_yes + 
-                Com_yes + T2M + PRECTOTCORR, data=chikdat)
-
-library(car)
-# Calculating VIF
-vif_values <- vif(fitglm)
-vif_values
-
-
-fitglm <- glm(Chik_pos ~ Test_delay + Age_avg + Male_per + Emp_stat_yes + 
-                  Com_yes + T2M + PRECTOTCORR + 
-                offset(log(Days+1)), data=chikdat, 
-              family=poisson(link = "log"))
-summary(fitglm)
-library(car)
-performance::performance(fitglm)
-round(exp(coef(fitglm)),2)
-round(exp(confint(fitglm)),2)
+# #######Count GLM
+# options(scipen=999)
+# ## Chikungunya - BD data ##
+# rm(list=ls())
+# library(MASS)
+# library(tscount)
+# 
+# chikts <- read.csv("ChikTS.csv", header=T)  
+# names(chikts)
+# 
+# 
+# #ARIMA
+# library(tseries)
+# library(forecast)
+# library(zoo)
+# d1=zoo(chikts$Pos, seq(from = as.Date("2024-10-19"), to = as.Date("2024-12-11"), by = 1))
+# tsdata <- ts(d1, frequency = 365)
+# 
+# auto.arima(tsdata)
+# 
+# Fit<-Arima(tsdata,order=c(2,1,1))
+# summary(Fit)
+# 
+# fcast <- forecast(Fit, h=10)
+# 
+# library(ggfortify)
+# z <- autoplot(fcast, size = 2) +
+#   xlab("Days") + ylab("Number of Chikungunya cases") +ggtitle("ARIMA Model")+
+#   guides(colour=guide_legend(title="Observed data"),
+#          fill=guide_legend(title="Prediction interval"))+ theme(legend.position="bottom") + theme_bw()+
+#   theme( legend.text = element_text(color = "Black", size = 18),
+#          text = element_text(size = 18))
+# z
+# 
+# tiff("arima.tiff", units="in", width=12, height=6, res=300)
+# gridExtra::grid.arrange(z)
+# dev.off()
+# 
+# #Menn kendal
+# library(Kendall)
+# library(trend)
+# 
+# t.test(tsdata)$"conf.int"
+# mean(tsdata)
+# 
+# library(trend)
+# MannKendall(tsdata)
+# sens.slope(tsdata, conf.level = 0.95)
+# 
+# 
+# chikdat <- read.csv("CHIKV_Count.csv", header=T)  
+# names(chikdat)
+# 
+# fitglm <- glm(Chik_pos ~ Test_delay + Age_avg + Male_per + Emp_stat_yes + 
+#                 Com_yes + T2M + PRECTOTCORR, data=chikdat)
+# 
+# library(car)
+# # Calculating VIF
+# vif_values <- vif(fitglm)
+# vif_values
+# 
+# 
+# fitglm <- glm(Chik_pos ~ Test_delay + Age_avg + Male_per + Emp_stat_yes + 
+#                   Com_yes + T2M + PRECTOTCORR + 
+#                 offset(log(Days+1)), data=chikdat, 
+#               family=poisson(link = "log"))
+# summary(fitglm)
+# library(car)
+# performance::performance(fitglm)
+# round(exp(coef(fitglm)),2)
+# round(exp(confint(fitglm)),2)
 
 
 
@@ -420,65 +508,9 @@ round(exp(confint(fitglm)),2)
 #Figure 1
 library(ggplot2)
 library("stringr") 
-
-df <- data.frame(Date=c("2024-10-19",
-                        "2024-10-24",
-                        "2024-10-26",
-                        "2024-10-31",
-                        "2024-11-07",
-                        "2024-11-10",
-                        "2024-11-11",
-                        "2024-11-12",
-                        "2024-11-13",
-                        "2024-11-14",
-                        "2024-11-17",
-                        "2024-11-18",
-                        "2024-11-19",
-                        "2024-11-20",
-                        "2024-11-21",
-                        "2024-11-24",
-                        "2024-11-25",
-                        "2024-11-26",
-                        "2024-11-27",
-                        "2024-11-28",
-                        "2024-12-01",
-                        "2024-12-02",
-                        "2024-12-03",
-                        "2024-12-04",
-                        "2024-12-05",
-                        "2024-12-08",
-                        "2024-12-09",
-                        "2024-12-10",
-                        "2024-12-11"),
-Count=c(2,
-        1,
-        1,
-        1,
-        1,
-        3,
-        3,
-        5,
-        5,
-        6,
-        2,
-        3,
-        2,
-        5,
-        5,
-        5,
-        2,
-        3,
-        6,
-        2,
-        7,
-        2,
-        1,
-        6,
-        9,
-        11,
-        4,
-        8,
-        1))
+chikdat <- read.csv("CHIKV_Count.csv", header=T)  
+df <- data.frame(Date=chikdat$Collection_Date,
+Count=chikdat$Collection_Cases)
 head(df)
 
 b<-ggplot(data=df, aes(x=Date, y=Count)) +
@@ -486,23 +518,47 @@ b<-ggplot(data=df, aes(x=Date, y=Count)) +
   theme_minimal()  +
   scale_fill_brewer() + geom_text(aes(label=Count), vjust=-0.5, color="black",
                                   position = position_dodge(1), size=5)+
-  xlab("Date") + ylab("Chikungunya Cases") + 
+  xlab("Sample Collection Date") + ylab("Chikungunya Cases") + 
   theme(axis.text = element_text(size = 15,angle = 90, vjust = 1, hjust=0.5),
         axis.title = element_text(size = 15),
         plot.title = element_text(size = 15),
         legend.title = element_text(size=15),
         legend.text = element_text(size=15))
 b 
+
+
+df <- data.frame(Date=chikdat$Onset_Date,
+                 Count=chikdat$Onset_Cases)
+head(df)
+
+c<-ggplot(data=df, aes(x=Date, y=Count)) +
+  geom_bar(stat="identity", fill="darkgreen")+
+  theme_minimal()  +
+  scale_fill_brewer() + geom_text(aes(label=Count), vjust=-0.5, color="black",
+                                  position = position_dodge(1), size=5)+
+  xlab("Onset Date") + ylab("Chikungunya Cases") + 
+  theme(axis.text = element_text(size = 15,angle = 90, vjust = 1, hjust=0.5),
+        axis.title = element_text(size = 15),
+        plot.title = element_text(size = 15),
+        legend.title = element_text(size=15),
+        legend.text = element_text(size=15))
+c 
+
+
+
+
 library(gridExtra)
-tiff("ChikungunyaCount.tiff", units="in", width=10, height=8, res=300)
-gridExtra::grid.arrange(b, nrow=1, ncol=1)
+tiff("ChikungunyaCount.tiff", units="in", width=12, height=12, res=300)
+gridExtra::grid.arrange(b, c, nrow=2, ncol=1)
 dev.off()
 
 
 #Pie chart
 df <- data.frame(
   Sex = c("Female", "Male"),
-  value = c(36.61, 63.39)
+  value = c(35.51,
+            64.49
+  )
 )
 head(df)
 
@@ -510,7 +566,7 @@ library(ggplot2)
 
 x <- ggplot(df, aes(x = "", y = value, fill = Sex)) +
   geom_col(color = "black") +
-  geom_text(aes(label = value),cex=15,
+  geom_text(aes(label = value),cex=8,
             position = position_stack(vjust = 0.5))  + ggtitle("Chikungunya Cases") +
   coord_polar(theta = "y") +
   scale_fill_brewer() +
@@ -522,42 +578,66 @@ x <- ggplot(df, aes(x = "", y = value, fill = Sex)) +
 x
 
 
-library(gridExtra)
-tiff("CCSex.tiff", units="in", width=8, height=6, res=300)
-gridExtra::grid.arrange(x, ncol=1)
-dev.off()
-
-
-
-
-
-#Figure 1
-library(ggplot2)
-library("stringr") 
-
-c <- table(ChikData$Age_cat)
-c
-
-df <- data.frame(Age=c("<=19", "20-29", "30-39", "40-49", "50-59", "60+"),
-                 Count=c(5, 13, 30, 26, 18, 20))
+df <- data.frame(
+  Age = c("<30", "≥30"),
+  value = c(16.67,
+            83.33
+  )
+)
 head(df)
 
-b<-ggplot(data=df, aes(x=Age, y=Count)) +
-  geom_bar(stat="identity", fill="darkgreen")+
-  theme_minimal()  +
-  scale_fill_brewer() + geom_text(aes(label=Count), vjust=-0.5, color="black",
-                                  position = position_dodge(1), size=5)+
-  xlab("Age Group") + ylab("Chikungunya Cases") + 
-  theme(axis.text = element_text(size = 15,angle = 90, vjust = 1, hjust=0.5),
-        axis.title = element_text(size = 15),
-        plot.title = element_text(size = 15),
-        legend.title = element_text(size=15),
-        legend.text = element_text(size=15))
-b 
+library(ggplot2)
+
+y <- ggplot(df, aes(x = "", y = value, fill = Age)) +
+  geom_col(color = "black") +
+  geom_text(aes(label = value),cex=8,
+            position = position_stack(vjust = 0.5))  + ggtitle("Chikungunya Cases") +
+  coord_polar(theta = "y") +
+  scale_fill_brewer() +
+  theme_void()+ ylab("") + theme(legend.title = element_text(size=15),
+                                 legend.text = element_text(size=15),
+                                 plot.title = element_text(hjust = 0.5),
+                                 text=element_text(size=15))
+
+y
+
+
 library(gridExtra)
-tiff("ChikungunyaAge.tiff", units="in", width=10, height=8, res=300)
-gridExtra::grid.arrange(b, nrow=1, ncol=1)
+tiff("CCSex.tiff", units="in", width=10, height=5, res=300)
+gridExtra::grid.arrange(x, y, ncol=2, nrow=1)
 dev.off()
+
+
+
+
+
+# #Figure 1
+# library(ggplot2)
+# library("stringr") 
+# 
+# c <- table(ChikData$Age_cat)
+# c
+# 
+# df <- data.frame(Age=c("<=19", "20-29", "30-39", "40-49", "50-59", "60+"),
+#                  Count=c(5, 13, 30, 26, 18, 20))
+# head(df)
+# 
+# b<-ggplot(data=df, aes(x=Age, y=Count)) +
+#   geom_bar(stat="identity", fill="darkgreen")+
+#   theme_minimal()  +
+#   scale_fill_brewer() + geom_text(aes(label=Count), vjust=-0.5, color="black",
+#                                   position = position_dodge(1), size=5)+
+#   xlab("Age Group") + ylab("Chikungunya Cases") + 
+#   theme(axis.text = element_text(size = 15,angle = 90, vjust = 1, hjust=0.5),
+#         axis.title = element_text(size = 15),
+#         plot.title = element_text(size = 15),
+#         legend.title = element_text(size=15),
+#         legend.text = element_text(size=15))
+# b 
+# library(gridExtra)
+# tiff("ChikungunyaAge.tiff", units="in", width=10, height=8, res=300)
+# gridExtra::grid.arrange(b, nrow=1, ncol=1)
+# dev.off()
 
 
 #Figure 1
@@ -567,19 +647,20 @@ library("stringr")
 df <- data.frame(Symptoms=c("Fever", "Rash", "Arthralgia", "Arthritis", "Conjunctivitis",
                         "Myalgia", "Headache", "Vomiting", "Diarrhea", "Others"),
                  Percentage=c(100.00,
-                              23.42,
-                              98.20,
+                              24.09,
+                              97.81,
                               2.02,
-                              48.65,
-                              84.68,
-                              68.47,
-                              33.33,
-                              1.80,
-                              3.57))
+                              46.72,
+                              83.21,
+                              64.96,
+                              29.93,
+                              1.46,
+                              2.90
+                 ))
 head(df)
 
 b<-ggplot(data=df, aes(x=reorder(Symptoms, -Percentage, sum), y=Percentage)) +
-  geom_bar(stat="identity", fill="darkgreen")+
+  geom_bar(stat="identity", fill="tomato4")+
   theme_minimal()  +
   scale_fill_brewer() + geom_text(aes(label=Percentage), vjust=-0.5, color="black",
                                   position = position_dodge(1), size=5)+
@@ -596,7 +677,9 @@ b
 #Pie chart
 df <- data.frame(
   Symptoms = c("Low", "High"),
-  value = c(41.07, 58.93)
+  value = c(46.38,
+            53.62
+  )
 )
 head(df)
 
@@ -607,7 +690,7 @@ c <- ggplot(df, aes(x = "", y = value, fill = Symptoms)) +
   geom_text(aes(label = value),cex=15,
             position = position_stack(vjust = 0.5))  + ggtitle("Clinical signs on chikungunya patients") +
   coord_polar(theta = "y") +
-  scale_fill_brewer() +
+  scale_fill_brewer(palette="cyan") +
   theme_void()+ ylab("") + theme(legend.title = element_text(size=15),
                                  legend.text = element_text(size=15),
                                  plot.title = element_text(hjust = 0.5),
@@ -631,20 +714,21 @@ library("stringr")
 
 df <- data.frame(Comorbidities=c("COPD", "Asthma", "ILD", "DM", "IHD",
                             "HTN", "CLD", "Cancer", "Pregnancy","CKD"),
-                 Percentage=c(4.50,
-                              7.21,
-                              0.90,
-                              25.23,
-                              9.01,
-                              27.93,
-                              4.50,
-                              0.90,
-                              0.90,
-                              1.8))
+                 Percentage=c(5.11,
+                              7.30,
+                              0.73,
+                              26.28,
+                              9.49,
+                              26.28,
+                              3.65,
+                              1.46,
+                              0.73,
+                              1.46
+                 ))
 head(df)
 
 b<-ggplot(data=df, aes(x=reorder(Comorbidities, -Percentage, sum), y=Percentage)) +
-  geom_bar(stat="identity", fill="darkgreen")+
+  geom_bar(stat="identity", fill="tomato4")+
   theme_minimal()  +
   scale_fill_brewer() + geom_text(aes(label=Percentage), vjust=-0.5, color="black",
                                   position = position_dodge(1), size=5)+
@@ -661,7 +745,9 @@ b
 #Pie chart
 df <- data.frame(
   Comorbidity = c("Yes", "No"),
-  value = c(54.95, 45.05)
+  value = c(47.45,
+            52.55
+  )
 )
 head(df)
 
@@ -672,7 +758,7 @@ y <- ggplot(df, aes(x = "", y = value, fill = Comorbidity)) +
   geom_text(aes(label = value),cex=15,
             position = position_stack(vjust = 0.5))  + ggtitle("Co-morbidities on chikungunya patients") +
   coord_polar(theta = "y") +
-  scale_fill_brewer() +
+  scale_fill_brewer(palette="cyan") +
   theme_void()+ ylab("") + theme(legend.title = element_text(size=15),
                                  legend.text = element_text(size=15),
                                  plot.title = element_text(hjust = 0.5),
