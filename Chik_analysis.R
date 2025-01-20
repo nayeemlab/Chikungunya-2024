@@ -39,6 +39,10 @@ IQR(na.omit(ChikData$Age))
 stat.desc(na.omit(ChikData$Age[ChikData$Hospital_cat == "Yes"]))
 IQR(na.omit(ChikData$Age))
 
+x <- table(ChikData$Months)
+x
+round(prop.table(x),4)*100
+
 NROW(ChikData$Test_delay)
 x <- table(ChikData$Test_delay)
 x
@@ -217,7 +221,79 @@ round(prop.table(x),4)*100
 
 
 
+#Hospital_cat == "Yes"
+ChikData$COPD[ChikData$COPD == ""] <- NA
+x <- table(ChikData$COPD[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+ChikData$Asthma[ChikData$Asthma == ""] <- NA
+x <- table(ChikData$Asthma[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+ChikData$ILD[ChikData$ILD == ""] <- NA
+x <- table(ChikData$ILD[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$DM[ChikData$DM == ""] <- NA
+x <- table(ChikData$DM[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$IHD[ChikData$IHD == ""] <- NA
+x <- table(ChikData$IHD[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$HTN[ChikData$HTN == ""] <- NA
+x <- table(ChikData$HTN[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$CLD[ChikData$CLD == ""] <- NA
+x <- table(ChikData$CLD[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$Cancer[ChikData$Cancer == ""] <- NA
+x <- table(ChikData$Cancer[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$Pregnancy[ChikData$Pregnancy == ""] <- NA
+x <- table(ChikData$Pregnancy[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+ChikData$CKD[ChikData$CKD == ""] <- NA
+x <- table(ChikData$CKD[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+ChikData$Any_comorb[ChikData$Any_comorb == ""] <- NA
+x <- table(ChikData$Any_comorb[ChikData$Hospital_cat == "Yes"])
+x
+round(prop.table(x),4)*100
+
+
+
+
+
 #Followup
+ChikData$FU_Current_Status[ChikData$FU == ""] <- NA
+x <- table(ChikData$FU)
+x
+round(prop.table(x),4)*100
+
 ChikData$FU_Current_Status[ChikData$FU_Current_Status == ""] <- NA
 x <- table(ChikData$FU_Current_Status)
 x
@@ -307,12 +383,12 @@ summary(c)
 ## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
 library(geepack)
 
-ChikData_new <- ChikData[, c("Serial", "N_Hospital_cat", "Age",
+ChikData_new <- ChikData[, c("Serial", "N_Hospital_cat", "Age_cat2",
                                        "Sex_cat", "Emp_status", "DCC",
-                                       "Symp_cat2", "Test_delay_cat", "Any_comorb")]
+                                        "Test_delay_cat", "Any_comorb")]
 
 ChikData_nomiss = na.omit(ChikData_new)
-geeglm.log.poisson <- geeglm(formula = N_Hospital_cat ~ Age + Sex_cat + Emp_status + Symp_cat2 + Test_delay_cat + Any_comorb,
+geeglm.log.poisson <- geeglm(formula = N_Hospital_cat ~ Age_cat2 + Sex_cat + Emp_status + Test_delay_cat + Any_comorb,
                              data    = ChikData_nomiss,
                              id      = Serial,
                              corstr  = "exchangeable")
