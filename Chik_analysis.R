@@ -412,7 +412,7 @@ map1 <- ggplot() +
   geom_polygon(data = SL.map, aes(x = long, y = lat, group = group), colour = "cadetblue", fill = "azure2") +
   geom_polygon(data = shp[shp$ADM2_EN=="Dhaka",], aes(x = long, y = lat, group = group), colour = "red", fill = "red") +
   theme(axis.title.x = element_blank()) + theme(axis.title.y = element_blank()) +
-  labs(title = "Map of Bangladesh")+
+  labs(title = "Bangladesh")+
   scale_y_continuous(breaks=NULL) + scale_x_continuous(breaks=NULL)+
   theme(plot.title = element_text(size = 12))
 
@@ -496,8 +496,9 @@ map5 <- map4 + annotation_custom(ggplotGrob(map1), xmin = 90.4, xmax = 90.53,
 map6 <- map5 + annotate(geom="text", x=90.25, y=23.50, label="Map of Dhaka",
                               color="black", size=10)
 map6
+
 library(gridExtra)
-tiff("ChikungunyaMap.tiff", units="in", width=10, height=8, res=300)
+tiff("ChikungunyaMap.tiff", units="in", width=8, height=8, res=300)
 gridExtra::grid.arrange(map6, nrow=1, ncol=1)
 dev.off()
 
