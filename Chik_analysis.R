@@ -294,14 +294,14 @@ x <- table(ChikData$FU)
 x
 round(prop.table(x),4)*100
 
-ChikData$FU_Current_Status[ChikData$FU_Current_Status == ""] <- NA
-x <- table(ChikData$FU_Current_Status)
+ChikData$Persistent.Symptoms[ChikData$Persistent.Symptoms == ""] <- NA
+x <- table(ChikData$Persistent.Symptoms)
 x
 round(prop.table(x),4)*100
 
 
-ChikData$FU_Sym_Joint_Pain[ChikData$FU_Sym_Joint_Pain == ""] <- NA
-x <- table(ChikData$FU_Sym_Joint_Pain)
+ChikData$PS.Joint.Pain[ChikData$PS.Joint.Pain == ""] <- NA
+x <- table(ChikData$PS.Joint.Pain)
 x
 round(prop.table(x),4)*100
 
@@ -403,6 +403,120 @@ exp(cbind(cc, citab))
 
 library(car)
 performance::performance(geeglm.log.poisson)
+
+
+
+## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
+library(geepack)
+ChikData$Persistent.Symptoms
+ChikData_new <- ChikData[, c("Serial", "Persistent.Symptoms", "Age_cat2",
+                             "Sex_cat", "Emp_status", "DCC",
+                             "Test_delay_cat", "Any_comorb")]
+
+ChikData_nomiss = na.omit(ChikData_new)
+geeglm.log.poisson <- geeglm(formula = Persistent.Symptoms ~ Age_cat2 + Sex_cat + Emp_status + Test_delay_cat + Any_comorb,
+                             data    = ChikData_nomiss,
+                             id      = Serial,
+                             corstr  = "exchangeable")
+summary(geeglm.log.poisson)
+
+cc <- coef(summary(geeglm.log.poisson))
+citab <- with(as.data.frame(cc),
+              cbind(lwr=Estimate-1.96*Std.err,
+                    upr=Estimate+1.96*Std.err))
+rownames(citab) <- rownames(cc)
+exp(cbind(cc, citab))
+
+library(car)
+performance::performance(geeglm.log.poisson)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
+library(geepack)
+ChikData$COPD
+ChikData$Asthma
+ChikData$ILD
+ChikData$DM
+ChikData$IHD
+ChikData$HTN
+ChikData$CLD
+ChikData$Cancer
+ChikData$Pregnancy
+
+ChikData_new <- ChikData[, c("Serial", "N_Hospital_cat", "Age_cat2",
+                             "Sex_cat", "Emp_status", "DCC",
+                             "Test_delay_cat",
+                             "DM", "IHD", "HTN")]
+
+ChikData_nomiss = na.omit(ChikData_new)
+geeglm.log.poisson <- geeglm(formula = N_Hospital_cat ~ Age_cat2 + Sex_cat + 
+                               Emp_status + Test_delay_cat 
+                               + DM + IHD + HTN,
+                             data    = ChikData_nomiss,
+                             id      = Serial,
+                             corstr  = "exchangeable")
+summary(geeglm.log.poisson)
+
+cc <- coef(summary(geeglm.log.poisson))
+citab <- with(as.data.frame(cc),
+              cbind(lwr=Estimate-1.96*Std.err,
+                    upr=Estimate+1.96*Std.err))
+rownames(citab) <- rownames(cc)
+exp(cbind(cc, citab))
+
+library(car)
+performance::performance(geeglm.log.poisson)
+
+
+
+## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
+library(geepack)
+ChikData$Persistent.Symptoms
+ChikData_new <- ChikData[, c("Serial", "Persistent.Symptoms", "Age_cat2",
+                             "Sex_cat", "Emp_status", "DCC",
+                             "Test_delay_cat", "Any_comorb")]
+
+ChikData_nomiss = na.omit(ChikData_new)
+geeglm.log.poisson <- geeglm(formula = Persistent.Symptoms ~ Age_cat2 + Sex_cat + Emp_status + Test_delay_cat + Any_comorb,
+                             data    = ChikData_nomiss,
+                             id      = Serial,
+                             corstr  = "exchangeable")
+summary(geeglm.log.poisson)
+
+cc <- coef(summary(geeglm.log.poisson))
+citab <- with(as.data.frame(cc),
+              cbind(lwr=Estimate-1.96*Std.err,
+                    upr=Estimate+1.96*Std.err))
+rownames(citab) <- rownames(cc)
+exp(cbind(cc, citab))
+
+library(car)
+performance::performance(geeglm.log.poisson)
+
+
+
+
+
+
+
+
+
+
 
 
 shp <- readOGR(dsn = "E:\\ResearchProject\\Najmul Bhai\\CHIKV\\bgd_adm_bbs_20201113_shp", "bgd_admbnda_adm4_bbs_20201113")
