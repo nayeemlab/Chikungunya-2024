@@ -380,56 +380,6 @@ c
 round(prop.table(c,1)*100,2)
 summary(c)
 
-## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
-library(geepack)
-
-ChikData_new <- ChikData[, c("Serial", "N_Hospital_cat", "Age_cat2",
-                                       "Sex_cat", "Emp_status", "DCC",
-                                        "Test_delay_cat", "Any_comorb")]
-
-ChikData_nomiss = na.omit(ChikData_new)
-geeglm.log.poisson <- geeglm(formula = N_Hospital_cat ~ Age_cat2 + Sex_cat + Emp_status + Test_delay_cat + Any_comorb,
-                             data    = ChikData_nomiss,
-                             id      = Serial,
-                             corstr  = "exchangeable")
-summary(geeglm.log.poisson)
-
-cc <- coef(summary(geeglm.log.poisson))
-citab <- with(as.data.frame(cc),
-              cbind(lwr=Estimate-1.96*Std.err,
-                    upr=Estimate+1.96*Std.err))
-rownames(citab) <- rownames(cc)
-exp(cbind(cc, citab))
-
-library(car)
-performance::performance(geeglm.log.poisson)
-
-
-
-## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
-library(geepack)
-ChikData$Persistent.Symptoms
-ChikData_new <- ChikData[, c("Serial", "Persistent.Symptoms", "Age_cat2",
-                             "Sex_cat", "Emp_status", "DCC",
-                             "Test_delay_cat", "Any_comorb")]
-
-ChikData_nomiss = na.omit(ChikData_new)
-geeglm.log.poisson <- geeglm(formula = Persistent.Symptoms ~ Age_cat2 + Sex_cat + Emp_status + Test_delay_cat + Any_comorb,
-                             data    = ChikData_nomiss,
-                             id      = Serial,
-                             corstr  = "exchangeable")
-summary(geeglm.log.poisson)
-
-cc <- coef(summary(geeglm.log.poisson))
-citab <- with(as.data.frame(cc),
-              cbind(lwr=Estimate-1.96*Std.err,
-                    upr=Estimate+1.96*Std.err))
-rownames(citab) <- rownames(cc)
-exp(cbind(cc, citab))
-
-library(car)
-performance::performance(geeglm.log.poisson)
-
 
 
 
@@ -451,22 +401,26 @@ library(geepack)
 ChikData$COPD
 ChikData$Asthma
 ChikData$ILD
+ChikData$Respiratory
 ChikData$DM
 ChikData$IHD
 ChikData$HTN
 ChikData$CLD
 ChikData$Cancer
+ChikData$CKD
 ChikData$Pregnancy
 
 ChikData_new <- ChikData[, c("Serial", "N_Hospital_cat", "Age_cat2",
                              "Sex_cat", "Emp_status", "DCC",
-                             "Test_delay_cat",
-                             "DM", "IHD", "HTN")]
+                             "Test_delay_cat", "COPD", "Asthma", "ILD",
+                             "Respiratory", "DM", "IHD", "HTN",
+                             "Cardiometabolic", "CLD", "Cancer",
+                             "CKD", "Chronic", "Symp_cat", "Symp_cat2")]
 
 ChikData_nomiss = na.omit(ChikData_new)
 geeglm.log.poisson <- geeglm(formula = N_Hospital_cat ~ Age_cat2 + Sex_cat + 
-                               Emp_status + Test_delay_cat 
-                               + DM + IHD + HTN,
+                             + Respiratory + Cardiometabolic + Chronic
+                             + Symp_cat,
                              data    = ChikData_nomiss,
                              id      = Serial,
                              corstr  = "exchangeable")
@@ -481,18 +435,37 @@ exp(cbind(cc, citab))
 
 library(car)
 performance::performance(geeglm.log.poisson)
+
+
+
 
 
 
 ## Common outcome: log link, poisson family, robust estimator (modified Poisson with robust estimator by Zou)
 library(geepack)
-ChikData$Persistent.Symptoms
+ChikData$COPD
+ChikData$Asthma
+ChikData$ILD
+ChikData$Respiratory
+ChikData$DM
+ChikData$IHD
+ChikData$HTN
+ChikData$CLD
+ChikData$Cancer
+ChikData$CKD
+ChikData$Pregnancy
+
 ChikData_new <- ChikData[, c("Serial", "Persistent.Symptoms", "Age_cat2",
                              "Sex_cat", "Emp_status", "DCC",
-                             "Test_delay_cat", "Any_comorb")]
+                             "Test_delay_cat", "COPD", "Asthma", "ILD",
+                             "Respiratory", "DM", "IHD", "HTN",
+                             "Cardiometabolic", "CLD", "Cancer",
+                             "CKD", "Chronic", "Symp_cat", "Symp_cat2")]
 
 ChikData_nomiss = na.omit(ChikData_new)
-geeglm.log.poisson <- geeglm(formula = Persistent.Symptoms ~ Age_cat2 + Sex_cat + Emp_status + Test_delay_cat + Any_comorb,
+geeglm.log.poisson <- geeglm(formula = Persistent.Symptoms ~ Age_cat2 + Sex_cat + 
+                             + Respiratory + Cardiometabolic + Chronic
+                             + Symp_cat,
                              data    = ChikData_nomiss,
                              id      = Serial,
                              corstr  = "exchangeable")
@@ -507,6 +480,7 @@ exp(cbind(cc, citab))
 
 library(car)
 performance::performance(geeglm.log.poisson)
+
 
 
 
